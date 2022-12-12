@@ -34,6 +34,7 @@ purge:
 GIT_REPO = ../00rel/nimv
 
 gitup:
+	cp -f .gitignore  $(GIT_REPO)
 	cp -f genconf.nim $(GIT_REPO)
 	cp -f LICENSE $(GIT_REPO)
 	cp -f Makefile $(GIT_REPO)
