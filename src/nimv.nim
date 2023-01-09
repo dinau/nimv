@@ -1,16 +1,17 @@
 # Simple version selector for Nim using choosenim
-# modified: 2022/11
+# modified: 2023/01
+# modified: 2022/11,12
 # modified: 2021/10
-# first: made by audin 2021/1
+# first: made by audin 2021/01
 #
 # Required:
-#     nim-0.19.6 or later minimum requested. Not colored.
-#     nim-1.4.0  or later recommended. Colored.
+#     nim-0.19.6 or later minimum requested. Not colorized.
+#     nim-1.4.0  or later recommended. Colorized.
 #
-import std/[os, strutils, terminal, osproc, pegs]
+import std/[os, strutils, terminal, osproc, strformat]
 
-const VERSION {.strdefine.} = "ERROR:unkonwn version"
-const REL_DATE {.strdefine.} = "ERROR:unkonwn release date"
+const VERSION {.strdefine.} = "1.2.0" #"ERROR:unkonwn version"
+const REL_DATE {.strdefine.} = "2023/01" #"ERROR:unkonwn release date"
 
 # Dose terminal library have Color attributes ?
 when (NimMajor, NimMinor, NimPatch) >= (1, 4, 0):
@@ -25,29 +26,48 @@ when defined(windows):
 else:
     const Choosenim = "choosenim"
 
-const NimvConf = "nimv.list"
+const NimvConfName = ".nimv.list"
 
 type
     Action = enum
         update, remove
 
+    NimVer = object
+        ver:string
+        active:bool
+        compiledDate:string
+        devVer:string
+
+
 let sHelp = """
-nimv $# ($#): Simple CUI for Chooseim command
+nimv $# ($#): Simple CUI wrapper for Choosenim command.
               from 2021/10 by audin
 Usage:
     nimv [Option]
        Option:
-            None : Show Choosenim CUI
-            -h, /?, /h, -v, --version: Show help
-    nimv.list: List of Old nim versions,set enable or not for install."""
+            None : Show simple CUI for Choosenim
+            -h, /?, /h, -v, --version: Show help of Nimv
+    .nimv.list: List of old nim versions.
+                It can be set show/hide to list up nim version.
+                This file can be placed in user home folder."""
 var
-    seqOldVersions: seq[string]
-    sActiveVer: string
-    seqInstalledVer: seq[string]
+    seqOldVers: seq[NimVer]
+    seqInstalledVers: seq[NimVer]
     fDebug = false
 
+proc echoColored(str:string,clFg:ForegroundColor = fgWhite,newline:bool = true) =
+    when HAVE_COLOR:
+        setForegroundColor(clFg, bright = true)
+        if newline:
+            echo str
+        else:
+            stdout.write str
+        stdout.resetAttributes()
+    else:
+        echo str
+
 proc updateInstalledVer(seqOutput: seq[string]) =
-    seqInstalledVer.setLen(0)
+    seqInstalledVers.setLen(0) # オールクリアで作り直す
     var state = 0
     for line in seqOutput:
         case state
@@ -55,92 +75,102 @@ proc updateInstalledVer(seqOutput: seq[string]) =
             if line.contains("Versions:"):
                 inc state
         of 1:
-            let ary = line.strip.split(peg"\s+")
+            let ary = line.strip.split(' ')
             if ary.len >= 2: # has '*' mark at ary[0] ?
-                seqInstalledVer.add ary[1]
+                seqInstalledVers.add NimVer(ver:ary[1],active:true)
             elif (ary.len == 1) and (ary[0].len > 0): # not have '*' mark
-                seqInstalledVer.add ary[0]
+                seqInstalledVers.add NimVer(ver:ary[0])
         else: discard
-
-proc echoColored(str:string,colf:ForegroundColor) =
-    when HAVE_COLOR:
-        setForegroundColor(colf, bright = true)
-        echo str
-        stdout.resetAttributes()
-    else:
-        echo str
+    if state == 0: # 1つしかインストールされていない時
+        let sVer = seqOutput[0].strip.split(' ')[1] # 1行目に選択バージョン番号がある
+        if sVer == "":
+            echo "ERROR !!: Fail get Version in updateInstalledVer()"
+            quit 1
+        seqInstalledVers.add NimVer(ver:sVer,active:true)
+    #
+    let (sOut, erCode) = execCmdEx("nim --version", options = {poStdErrToStdOut, poUsePath})
+    if erCode == 0:
+        let date = sOut.splitLines()[1].strip.split(' ')[2]
+        let devVer = sOut.splitLines()[0].strip.split(' ')[3]
+        for i,obj in seqInstalledVers:
+            if obj.active:
+                seqInstalledVers[i].compiledDate = date
+                if obj.ver.contains("#"):
+                    seqInstalledVers[i].devVer = devVer
+                break
 
 proc updateActiveVer(): (bool, string) {.discardable.} =
-    let cmd = Choosenim & " --noColor " & "show"
-    if fDebug:
-        echo "[[$#]]" % [cmd]
+    const cmd = Choosenim & " --noColor " & "show"
+    if fDebug: echo "[[$#]]" % [cmd]
     let (sOut, erCode) = execCmdEx(cmd, options = {poStdErrToStdOut, poUsePath})
     if erCode == 0:
-        let seqLines = sOut.splitLines()
-        sActiveVer = seqLines[0].split(peg"\s+")[1].strip # Contains "Selected: version"
-        updateInstalledVer(seqLines)
+        updateInstalledVer(sOut.splitLines()) # 全行渡す
         result = (true, sOut)
     else:
         result = (false, "0[ERROR]: " & sOut)
 
 proc choosenim(argments: openArray[string]): bool =
     let cmd = Choosenim & " " & join(argments, " ")
-    if fDebug:
-        echo "[[$#]]" % [cmd]
+    if fDebug: echo "[[$#]]" % [cmd]
     if 0 == execCmd(cmd):
         updateActiveVer()
         result = true
 
-proc showActionMenu(act: Action, sqNewNimVers: var seq[string]) =
-    let sAct = if act == Action.update: "install" else: "delete"
-    echoColored(" *** [$#]: Select number you'd like to $# ***\n" % [ sAct.toUpper, sAct],
-                if act == Action.update: fgGreen else: fgRed)
+proc showActionMenu(act: Action): seq[NimVer] =
+    let sAct = if act == Action.update: "Installable" else: "Deletable"
+    let str = fmt"{sAct:>11}"
+    echoColored "   .-------------------------------------------."
+    echoColored "   | $# versions, select number       |" % [str],if act == Action.update: fgGreen else: fgRed
+    echoColored "   `-------------------------------------------'"
+
     case act
     of Action.update:
-        for sOldVer in seqOldVersions:
+        for oldVerObj in seqOldVers:
             var fSame = false
-            for sInstalledVer in seqInstalledVer:
-                if sOldVer == sInstalledVer:
+            for installedVerObj in seqInstalledVers:
+                if oldVerObj.ver == installedVerObj.ver:
                     fSame = true
                     break
             if not fSame:
-                sqNewNimVers.add sOldVer
-        for i, sVer in sqNewNimVers:
-            echo "  [$#]  nim-$#" % [$i, sVer]
+                result.add oldVerObj
     of Action.remove:
-        for sVer in seqInstalledVer:
-            if not (sVer == sActiveVer):
-                sqNewNimVers.add sVer
-        for i, sVer in sqNewNimVers:
-            echo "  [$#]  nim-$#" % [$i, sVer]
+        for installedVerObj in seqInstalledVers:
+            if not installedVerObj.active:
+                result.add installedVerObj
+    for i, obj in result: # Show all versions
+        let cNum = if i > 9: ('0'.ord + i + 7).chr else: ('0'.ord + i).chr
+        echo &"    [{cNum}]  nim-{obj.ver}"
 
-    echo "  ---"
-    echo "  [M] Back to top menu (or [R])"
-    echo "  [Q] Exit (or [Enter])"
+    echo "    ---"
+    echo "    [M] Back to top menu (or [R])"
+    echo "    [Q] Exit (or [Enter])"
 
 proc dispatchActionMenu(act: Action): bool =
     result = true
-    var seqNewNimVers: seq[string]
     while true:
-        seqNewNimVers = @[]
-        showActionMenu(act, seqNewNimVers)
+        let seqNewNimVers = showActionMenu(act)
         let ch = getch()
         if ch == '\r' or ch == 'q':
             quit 0
         if ch == 'r' or ch == 'm':
             return true
-        let num = ch.ord - '0'.ord
+        #
+        var num = -1
+        if ch >= '0' and ch <= '9':
+            num = ch.ord - '0'.ord
+        elif ch >= 'a'and ch <= 'j':
+            num = ch.ord - 'a'.ord + 10
         if num >= 0 and num < seqNewNimVers.len:
-            var sVer = seqNewNimVers[num]
-            if (sVer =~ peg"\s* '#' ") and (act == Action.update):
+            var sVer = seqNewNimVers[num].ver
+            let res = sVer.contains("#")
+            if res and (act == Action.update):
                 let messages = "This may take much time !\nUpdate Devel version ? y/[n]:"
                 echoColored(messages, fgYellow)
                 if getch() != 'y':
                     return
             if act == Action.remove:
                 sVer = "\"" & sVer & "\"" # for Linux: orz
-            let cmdArgs = [$act, sVer]
-            result = choosenim(cmdArgs)
+            result = choosenim( [$act, sVer] )
 
 proc dispatchTopMenu(ch: char): bool =
     case ch
@@ -155,40 +185,47 @@ proc dispatchTopMenu(ch: char): bool =
         if getch() == 'y':
             result = choosenim(["update", "devel"])
     of 'l':
-        result = dispatchActionMenu(Action.update)
+        result = dispatchActionMenu(Action.update) #
     of 'r':
         result = dispatchActionMenu(Action.remove)
-    of '0'..'9':
-        let num = ch.ord - '0'.ord
-        if num >= 0 and num < seqInstalledVer.len:
-            result = choosenim([seqInstalledVer[num].strip(chars={'#'})])
-    of 'a'..'j':
-        let num = ch.ord - 'a'.ord + 10
-        if num >= 0 and num < seqInstalledVer.len:
-            result = choosenim([seqInstalledVer[num].strip(chars={'#'})])
     else:
         result = true
+        var num = -1
+        if ch >= '0' and ch <= '9':
+            num = ch.ord - '0'.ord
+        elif ch >= 'a'and ch <= 'j':
+            num = ch.ord - 'a'.ord + 10
+        if num >= 0 and num < seqInstalledVers.len:
+            result = choosenim([seqInstalledVers[num].ver.strip(chars={'#'})])
 
 proc showTopMenu() =
-    echo "\n *** Installed versions ***"
-    echo "     Select number you'd like to change Nim version."
-    echo "     *: Active version."
-    for i, sVer in seqInstalledVer:
+    echo        " .-----------------------."
+    echoColored " || Installed versions  ||",fgCyan
+    echo        " `-----------------------'"
+    for i, installedVerObj in seqInstalledVers:
         let cNum = if i > 9: ('0'.ord + i + 7).chr else: ('0'.ord + i).chr
-        let sBase = " [$#]  nim-$#" % [$cNum, sVer]
-        if sVer == sActiveVer:
-            echoColored(sBase & " *", fgGreen)
+        let sBase = &"  [{cNum}]  nim-{installedVerObj.ver}"
+        if installedVerObj.active:
+            echoColored(sBase & " *", fgGreen, false)
+            if installedVerObj.devVer != "":
+                stdout.write &"  ({installedVerObj.compiledDate})"
+                echo " v",installedVerObj.devVer
+            else:
+                echo &" ({installedVerObj.compiledDate})"
         else:
             echo sBase
-    echo """ ---
- [L]  [L]ist and install other Nim versions
- [U]  [U]pdate to Stable version
- [P]  U[p]date devel version (nim-#devel)
- [R]  [R]emove Nim versions
- [Q]  Exit (or [Enter])"""
 
-# In case not existing NimvConf,use below edge versions
-const tblOldVersions = ["1.6.8", "1.4.8", "1.2.18", "1.0.10", "0.19.6", ]
+    echo "    Select number you'd like to change Nim version."
+    echo "    *: Active version."
+    echo """  ---
+  [L] [L]ist and install other Nim versions
+  [U] [U]pdate to stable version
+  [P] U[p]date devel version (nim-#devel)
+  [R] [R]emove Nim versions
+  [Q] Exit (or [Enter])"""
+
+# In case not existing NimvConfName,use below edge versions as default.
+const tblOldVersions = ["1.6.10", "1.6.8", "1.4.8", "1.2.18", "1.0.10"]
 
 proc main() =
     #### Check choosenim
@@ -196,6 +233,7 @@ proc main() =
         echoColored("Cannot find 'choosenim' command, install it as follows:",fgRed)
         echoColored("nimble install choosenim",fgYellow)
         quit 1
+
     #### Show Help
     if paramCount() >= 1:
         case paramStr(1)
@@ -203,23 +241,26 @@ proc main() =
             echo(sHelp % [VERSION,REL_DATE])
             quit 0
 
-    #### Read conf file
+    #### Read conf file (.nimv.list)
     let selfPath = os.getAppFilename()
-    echo "[ $# ] (v$#)" % [selfPath,VERSION]
-    let p = selfPath.splitFile()
-    let confPath = joinPath(p.dir, NimvConf)
-
-    if confPath.fileExists:
-        echo "[ $# ]" % [confPath]
-        for line in lines(confPath):
-            if line =~ peg"\s* '#' (.+)?": continue # Skip comment
-            let elms = line.split(',')
-            let enable = elms[0].strip
-            let sVer = elms[1].strip
-            if "0" == enable: continue
-            seqOldVersions.add sVer
+    echo "[ $# ]" % [selfPath]
+    let p = getHomeDir().splitFile()
+    let confPathName = joinPath(p.dir, NimvConfName)
+    if confPathName.fileExists:
+        echo "[ $# ] Activated" % [confPathName]
+        for line in lines(confPathName):
+            if (line.strip)[0] == '#': continue # Skip comment
+            if line.strip.len == 0: continue # Skip empty line
+            let
+                elms = line.split(',')
+                show = elms[0].strip
+                sVer = elms[1].strip
+            if "1" == show:
+                seqOldVers.add NimVer(ver:sVer)
     else:
-        seqOldVersions = @tblOldVersions
+        echo "[ $# ] Not exists" % [confPathName]
+        for sVer in @tblOldVersions:
+            seqOldVers.add NimVer(ver:sVer)
 
     ####
     let (fRes, sRes) = updateActiveVer()

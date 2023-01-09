@@ -1,16 +1,28 @@
-#var TC = "gcc"
+var TC = "gcc"
 #var TC = "clang"
 #var TC = "vcc"
-var TC = "tcc"
+#var TC = "tcc"
 
-if "" == findExe(TC): # GCC is default compiler if TC dosn't exist on the PATH
-    TC = "gcc"
+if TC != "vcc":
+    if "" == findExe(TC): # GCC is default compiler if TC dosn't exist on the PATH
+        TC = "gcc"
+
 
 #const LTO = true
 const LTO = false
 
+switch "passL","-static-libgcc" # for 32bit Windows
+
 switch "define", "danger"
 switch "opt", "size"
+
+# Reduce code size further
+when true:
+    #switch "mm","arc" # nim-1.6.8 or later
+    switch "gc","arc"
+    switch "define","useMalloc"
+    switch "define","noSignalHandler"
+    #switch "panics","on"
 
 #switch "verbosity","2"
 
