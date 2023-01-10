@@ -10,7 +10,7 @@
 #
 import std/[os, strutils, terminal, osproc, strformat]
 
-const VERSION {.strdefine.} = "1.2.0" #"ERROR:unkonwn version"
+const VERSION {.strdefine.} = "1.3.0" #"ERROR:unkonwn version"
 const REL_DATE {.strdefine.} = "2023/01" #"ERROR:unkonwn release date"
 
 # Dose terminal library have Color attributes ?
