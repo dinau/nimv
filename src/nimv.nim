@@ -109,7 +109,7 @@ proc updateActiveVer(): (bool, string) {.discardable.} =
         seqCmd.add("--nimbleDir:\"$#\"" % [sNimbleDir])
     seqCmd.add(" --noColor " & "show")
     let cmd = seqCmd.join(" ")
-    if fDebug: echo "[[$#]] in updateActiveVer()" % [cmd]
+    if fDebug: echoColored "[[$#]] in updateActiveVer()" % [cmd],fgRed
     let (sOut, erCode) = execCmdEx(cmd, options = {poStdErrToStdOut, poUsePath})
     if erCode == 0:
         updateInstalledVer(sOut.splitLines()) # 全行渡す
@@ -125,7 +125,7 @@ proc choosenim(argments: openArray[string]): bool =
     if "" != sNimbleDir:
         seqCmd.add("--nimbleDir:\"$#\"" % [sNimbleDir])
     let cmd = [seqCmd.join(" "),argments.join(" ")].join(" ")
-    if fDebug: echo "[[$#]] in choosenim()" % [cmd]
+    if fDebug: echoColored "[[$#]] in choosenim()" % [cmd],fgRed
     if 0 == execCmd(cmd):
         updateActiveVer()
         result = true
@@ -258,8 +258,6 @@ proc main() =
 
     #### Read conf file (NimvConfName)
     let selfPath = os.getAppFilename()
-    stdout.write "[ $# ]" % [selfPath]
-    echoColored " Running",fgYellow
     let p = getHomeDir().splitFile()
     let confPathName = joinPath(p.dir, NimvConfName)
     if confPathName.fileExists:
@@ -272,6 +270,10 @@ proc main() =
             echo "Json parsing Error: " & e.msg
             echo "  $#" % [confPathName]
             quit 1
+        fDebug = jnode["debugMode"].getBool
+        if fDebug:
+            stdout.write "[ $# ]" % [selfPath]
+            echoColored " Running",fgYellow
         for jElm in jnode["oldVers"].items:
             if 1 == jElm["enable"].getInt:
                 seqOldVers.add NimVer(ver:jElm["ver"].getStr)
@@ -297,7 +299,6 @@ proc main() =
                 echoColored "ERROR: Not found [$#] => nimbleDir"  % [sNimbleDir],fgRed
                 sNimbleDir = ""
         #
-        fDebug = jnode["debugMode"].getBool
 
     else:
         echo "[ $# ] Not exists" % [confPathName]
