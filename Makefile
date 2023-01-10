@@ -1,5 +1,6 @@
 TARGET = nimv
-NIMV_CONF_NAME = .nimv.list
+#NIMV_CONF_NAME = .nimv.list
+NIMV_CONF_NAME = .nimv.json
 
 VPATH = src
 
@@ -12,6 +13,7 @@ endif
 
 all: genconf$(EXE)
 	@nimble make --verbose
+	cp -f .nimv.json c:/Users/$(USERNAME)/
 
 OPT += -d:danger
 OPT += -d:strip

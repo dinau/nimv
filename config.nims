@@ -11,7 +11,7 @@ if TC != "vcc":
 #const LTO = true
 const LTO = false
 
-switch "passL","-static-libgcc" # for 32bit Windows
+#switch "passL","-static-libgcc" # for 32bit Windows
 
 switch "define", "danger"
 switch "opt", "size"

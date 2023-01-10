@@ -26,7 +26,7 @@ when defined(windows):
 else:
     const Choosenim = "choosenim"
 
-const NimvConfName = ".nimv.list"
+const NimvConfName = ".nimv.json"
 
 type
     Action = enum
@@ -45,26 +45,27 @@ nimv $# ($#): Simple CUI wrapper for Choosenim command.
 Usage:
     nimv [Option]
        Option:
-            None : Show simple CUI for Choosenim
-            -h, /?, /h, -v, --version: Show help of Nimv
+            None : Show simple CUI for Choosenim.
+            -h, /?, /h, -v, --version: Show thispage.
     .nimv.list: List of old nim versions.
                 It can be set show/hide to list up nim version.
                 This file can be placed in user home folder."""
 var
     seqOldVers: seq[NimVer]
     seqInstalledVers: seq[NimVer]
+    # Over written by the values within ".nimv.json"
     fDebug = false
+    fDispChoosenimAndNimbleDir = false
+    sChoosenimDir:string
+    sNimbleDir:string
 
 proc echoColored(str:string,clFg:ForegroundColor = fgWhite,newline:bool = true) =
     when HAVE_COLOR:
         setForegroundColor(clFg, bright = true)
-        if newline:
-            echo str
-        else:
-            stdout.write str
+        if newline: echo str else: stdout.write str
         stdout.resetAttributes()
     else:
-        echo str
+        if newline: echo str else: stdout.write str
 
 proc updateInstalledVer(seqOutput: seq[string]) =
     seqInstalledVers.setLen(0) # オールクリアで作り直す
@@ -76,15 +77,15 @@ proc updateInstalledVer(seqOutput: seq[string]) =
                 inc state
         of 1:
             let ary = line.strip.split(' ')
-            if ary.len >= 2: # has '*' mark at ary[0] ?
+            if ary.len >= 2: # has '*' mark at ary[0]
                 seqInstalledVers.add NimVer(ver:ary[1],active:true)
             elif (ary.len == 1) and (ary[0].len > 0): # not have '*' mark
                 seqInstalledVers.add NimVer(ver:ary[0])
         else: discard
     if state == 0: # 1つしかインストールされていない時
-        let sVer = seqOutput[0].strip.split(' ')[1] # 1行目に選択バージョン番号がある
+        let sVer = seqOutput[0].strip.split(' ')[1] # 1行目の2項目に選択バージョン番号がある
         if sVer == "":
-            echo "ERROR !!: Fail get Version in updateInstalledVer()"
+            echo "ERROR !!: Fail get version in updateInstalledVer()"
             quit 1
         seqInstalledVers.add NimVer(ver:sVer,active:true)
     #
@@ -100,8 +101,15 @@ proc updateInstalledVer(seqOutput: seq[string]) =
                 break
 
 proc updateActiveVer(): (bool, string) {.discardable.} =
-    const cmd = Choosenim & " --noColor " & "show"
-    if fDebug: echo "[[$#]]" % [cmd]
+    var seqCmd:seq[string] = @[]
+    seqCmd.add Choosenim
+    if "" != sChoosenimDir:
+        seqCmd.add("--choosenimDir:\"$#\"" % [sChoosenimDir])
+    if "" != sNimbleDir:
+        seqCmd.add("--nimbleDir:\"$#\"" % [sNimbleDir])
+    seqCmd.add(" --noColor " & "show")
+    let cmd = seqCmd.join(" ")
+    if fDebug: echo "[[$#]] in updateActiveVer()" % [cmd]
     let (sOut, erCode) = execCmdEx(cmd, options = {poStdErrToStdOut, poUsePath})
     if erCode == 0:
         updateInstalledVer(sOut.splitLines()) # 全行渡す
@@ -110,8 +118,14 @@ proc updateActiveVer(): (bool, string) {.discardable.} =
         result = (false, "0[ERROR]: " & sOut)
 
 proc choosenim(argments: openArray[string]): bool =
-    let cmd = Choosenim & " " & join(argments, " ")
-    if fDebug: echo "[[$#]]" % [cmd]
+    var seqCmd:seq[string] = @[]
+    seqCmd.add Choosenim
+    if "" != sChoosenimDir:
+        seqCmd.add("--choosenimDir:\"$#\"" % [sChoosenimDir])
+    if "" != sNimbleDir:
+        seqCmd.add("--nimbleDir:\"$#\"" % [sNimbleDir])
+    let cmd = [seqCmd.join(" "),argments.join(" ")].join(" ")
+    if fDebug: echo "[[$#]] in choosenim()" % [cmd]
     if 0 == execCmd(cmd):
         updateActiveVer()
         result = true
@@ -137,7 +151,7 @@ proc showActionMenu(act: Action): seq[NimVer] =
         for installedVerObj in seqInstalledVers:
             if not installedVerObj.active:
                 result.add installedVerObj
-    for i, obj in result: # Show all versions
+    for i, obj in result: # Show versions
         let cNum = if i > 9: ('0'.ord + i + 7).chr else: ('0'.ord + i).chr
         echo &"    [{cNum}]  nim-{obj.ver}"
 
@@ -227,6 +241,7 @@ proc showTopMenu() =
 # In case not existing NimvConfName,use below edge versions as default.
 const tblOldVersions = ["1.6.10", "1.6.8", "1.4.8", "1.2.18", "1.0.10"]
 
+import json
 proc main() =
     #### Check choosenim
     if "" == findExe(Choosenim):
@@ -241,22 +256,49 @@ proc main() =
             echo(sHelp % [VERSION,REL_DATE])
             quit 0
 
-    #### Read conf file (.nimv.list)
+    #### Read conf file (NimvConfName)
     let selfPath = os.getAppFilename()
-    echo "[ $# ]" % [selfPath]
+    stdout.write "[ $# ]" % [selfPath]
+    echoColored " Running",fgYellow
     let p = getHomeDir().splitFile()
     let confPathName = joinPath(p.dir, NimvConfName)
     if confPathName.fileExists:
-        echo "[ $# ] Activated" % [confPathName]
-        for line in lines(confPathName):
-            if (line.strip)[0] == '#': continue # Skip comment
-            if line.strip.len == 0: continue # Skip empty line
-            let
-                elms = line.split(',')
-                show = elms[0].strip
-                sVer = elms[1].strip
-            if "1" == show:
-                seqOldVers.add NimVer(ver:sVer)
+        stdout.write "[ $# ]" % [confPathName]
+        echoColored " Activated",fgYellow
+        var jnode:JsonNode
+        try:
+            jnode = parseJson(readfile(confPathName))
+        except JsonParsingError as e:
+            echo "Json parsing Error: " & e.msg
+            echo "  $#" % [confPathName]
+            quit 1
+        for jElm in jnode["oldVers"].items:
+            if 1 == jElm["enable"].getInt:
+                seqOldVers.add NimVer(ver:jElm["ver"].getStr)
+        fDispChoosenimAndNimbleDir = jnode["dispChoosenimAndNimbleDir"].getBool
+        #
+        sChoosenimDir = jnode["choosenimDir"].getStr
+        if "" != sChoosenimDir:
+            if dirExists sChoosenimDir:
+                if fDispChoosenimAndNimbleDir:
+                    stdout.write &"[ {sChoosenimDir} ]"
+                    echoColored " => choosenimDir",fgYellow
+            else:
+                echoColored "ERROR: Not found [$#] => choosenimDir"  % [sChoosenimDir],fgRed
+                sChoosenimDir = ""
+        #
+        sNimbleDir = jnode["nimbleDir"].getStr
+        if "" != sNimbleDir:
+            if dirExists sNimbleDir:
+               if fDispChoosenimAndNimbleDir:
+                   stdout.write &"[ {sNimbledir} ]"
+                   echoColored " => nimbleDir",fgYellow
+            else:
+                echoColored "ERROR: Not found [$#] => nimbleDir"  % [sNimbleDir],fgRed
+                sNimbleDir = ""
+        #
+        fDebug = jnode["debugMode"].getBool
+
     else:
         echo "[ $# ] Not exists" % [confPathName]
         for sVer in @tblOldVersions:
@@ -282,7 +324,7 @@ proc main() =
                     let _ = choosenim(["show"])
                 quit 0
         if not fDebug:
-            discard dispatchTopMenu(arg1[0]) # Specifiy a number to activate one version
+            discard dispatchTopMenu(arg1[0]) # Specifiy a number to activate a version
             quit 0
 
     #### Start CUI

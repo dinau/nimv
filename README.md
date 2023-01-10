@@ -4,12 +4,14 @@
 - [Nimv](#nimv)
   - [Simple CUI wrapper for Choosenim command](#simple-cui-wrapper-for-choosenim-command)
     - [Install](#install)
-    - [Nimv key operation menu](#nimv-key-operation-menu)
+    - [Key operation menu](#key-operation-menu)
       - [Top menu](#top-menu)
-      - [Select other Nim mversion](#select-other-nim-version)
-      - [List up installable versions](#list-up-installable-versions)
+      - [Selecting other Nim version](#selecting-other-nim-version)
+      - [Install other Nim versions](#install-other-nim-versions)
       - [Remove nim versions](#remove-nim-versions)
       - [Other key operation](#other-key-operation)
+      - [Selecting a version on command line](#selecting-a-version-on-command-line)
+      - [Transparently throwing commands to choosenim](#transparently-throwing-commands-to-choosenim)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -23,8 +25,9 @@
 
 ---
 
-1. First install [Nim language](https://nim-lang.org)  
-   Confirm nim version info (at this time),
+1.
+   Confirm nim version info (at this time) [Nim language](https://nim-lang.org),
+
    ```sh
    $ nim --version
 
@@ -33,11 +36,8 @@
     Copyright (c) 2006-2021 by Andreas Rumpf
    ```
 
-1. Install **choosenim** command,
-
-   ```sh
-   nimble install choosenim
-   ```
+1. Install **choosenim** command  
+   Refer to [https://github.com/dom96/choosenim](https://github.com/dom96/choosenim)
 
 1. Install **Nimv** command,
 
@@ -75,26 +75,27 @@ Press `'1'`(one) key to select **nim-1.6.10**.
 
 Activated **nim-1.6.10**.
 
-#### List up installable versions
+#### Install other Nim versions
 
 ---
 
-Press `'L'` key to list up installable nim versions.
+1. Press `'L'` key to list up installable nim versions.
 
-![alt](img/listMenu.png)
+   ![alt](img/listMenu.png)
 
-You can **install other nim version** by pressing key `'0' or '1' or '2'` at above situation  
-and can then go back to top menu by pressing key `'M' or 'R'`.
+1. You can **install other nim version** by pressing key `'0' or '1' or '2'`  
+    at above situation.
+1. You can then go back to top menu by pressing key `'M' or 'R'`.
 
 #### Remove nim versions
 
 ---
 
-Press `'R'` key to remove nim version.
+1. Press `'R'` key to remove nim version.
 
-![alt](img/removeMenu.png)
+   ![alt](img/removeMenu.png)
 
-You can remove **nim-1.6.8** by pressing key `'0'`.
+1. You can remove **nim-1.6.8** by pressing key `'0'`.
 
 #### Other key operation
 
@@ -110,7 +111,7 @@ You can remove **nim-1.6.8** by pressing key `'0'`.
 
 ![alt](img/topMenu.png)
 
-1. Start Nimv and get the number of **nim-1.6.10** then exit Nimv.
+1. Start Nimv and get the number of **nim-1.6.10** then **exit Nimv**.
 1. You can select **nim-1.6.10** by specifying the number on command line as follows,
 
    ```sh
@@ -142,3 +143,17 @@ choosenim remove 1.6.8
 ```
 
 except `nimv --version`.
+
+```sh
+$ nimv --version
+nimv 1.2.0 (2023/01): Simple CUI wrapper for Choosenim command.
+              from 2021/10 by audin
+Usage:
+    nimv [Option]
+       Option:
+            None : Show simple CUI for Choosenim
+            -h, /?, /h, -v, --version: Show help of Nimv
+    .nimv.list: List of old nim versions.
+                It can be set show/hide to list up nim version.
+                This file can be placed in user home folder.
+```
