@@ -39,10 +39,16 @@
 1. Install **choosenim** command  
    Refer to [https://github.com/dom96/choosenim](https://github.com/dom96/choosenim)
 
+1. Confirm execution path in PATH variable,  
+   - Windows10
+      - `c:\Users\%USERNAME%\.nimble\bin`
+   - Linux OS
+       - `~/.nimble/bin`
+
 1. Install **Nimv** command,
 
    ```sh
-   nimble install https://github.com/dinau/nimv
+   nimble install https://github.com/dinau/nimv@#head
    ```
 
 1. Install anyway other Nim version,
@@ -91,11 +97,11 @@ Activated **nim-1.6.10**.
 
 ---
 
-1. Press `'R'` key to remove nim version.
+1. Press `'R'` key on top menu to remove nim version.
 
    ![alt](img/removeMenu.png)
 
-1. You can remove **nim-1.6.8** by pressing key `'0'`.
+1. You can remove **nim-1.6.8** by pressing key `'0'`(zero).
 
 #### Other key operation
 
@@ -112,7 +118,7 @@ Activated **nim-1.6.10**.
 ![alt](img/topMenu.png)
 
 1. Start Nimv and get the number of **nim-1.6.10** then **exit Nimv**.
-1. You can select **nim-1.6.10** by specifying the number on command line as follows,
+1. You can select **nim-1.6.10** by specifying the number `1` on command line as follows,
 
    ```sh
    nimv 1
@@ -146,14 +152,14 @@ except `nimv --version`.
 
 ```sh
 $ nimv --version
-nimv 1.2.0 (2023/01): Simple CUI wrapper for Choosenim command.
+nimv 1.3.0 (2023/01): Simple CUI wrapper for Choosenim command.
               from 2021/10 by audin
 Usage:
-    nimv [Option]
-       Option:
-            None : Show simple CUI for Choosenim
-            -h, /?, /h, -v, --version: Show help of Nimv
-    .nimv.list: List of old nim versions.
-                It can be set show/hide to list up nim version.
-                This file can be placed in user home folder.
-```
+    nimv [option]
+       option:
+            None : Show simple CUI for Choosenim.
+            -h, /?, /h, -v, --version: Show this page.
+            -d: Start nimv with debug mode. Shown choosenim command.
+    .nimv.json: List of old nim versions and configration to nimv.
+                It can be set show/hide to list up the specified nim version.
+                This file can be placed in user home folder.``

@@ -7,8 +7,10 @@ VPATH = src
 ifeq ($(OS),Windows_NT)
 	EXE = .exe
 	DESD_DIR = d:/00emacs-home/vimtool
+	MYHOME = $(HOMEDRIVE)$(HOMEPATH)
 else
 	DESD_DIR = ~/bin
+	MYHOME = $(HOME)
 endif
 
 all: genconf$(EXE)
@@ -61,3 +63,7 @@ gitup:
 
 dlls:
 	@strings $(TARGET)$(EXE) | rg -i \.dll
+cphome:
+	cp -f .nimv.json $(MYHOME)
+pretty:
+	nimpretty --indent:4 --maxLineLen:200 src/$(TARGET).nim
