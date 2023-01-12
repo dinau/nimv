@@ -6,7 +6,8 @@ var TC = "gcc"
 if TC != "vcc":
     if "" == findExe(TC): # GCC is default compiler if TC dosn't exist on the PATH
         TC = "gcc"
-
+    if "" == findExe(TC): # if dosn't exist gcc, try clang
+        TC = "clang"
 
 #const LTO = true
 const LTO = false
