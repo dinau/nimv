@@ -15,7 +15,15 @@ endif
 
 all: genconf$(EXE)
 	@nimble make --verbose
-	cp -f .nimv.json c:/Users/$(USERNAME)/
+	-cp -f .nimv.json c:/Users/$(USERNAME)/
+	@# dll check
+	-@strings $(TARGET)$(EXE) | rg -i \.dll
+	@# version check
+	@echo [nimv.nimlbe]
+	-@rg -ie "version\s+=.+" nimv.nimble
+	@echo [version.nims]
+	-@rg -ie "\d\.\d\.\d" version.nims
+	-@ mdmake .
 
 OPT += -d:danger
 OPT += -d:strip
@@ -46,6 +54,7 @@ GIT_REPO = ../00rel/nimv
 
 gitup:
 	@-rm $(GIT_REPO)/* $(GIT_REPO)/src/
+	cp -f version.nims $(GIT_REPO)
 	cp -f config.nims $(GIT_REPO)
 	cp -f .gitignore  $(GIT_REPO)
 	cp -f genconf.nim $(GIT_REPO)
@@ -67,3 +76,14 @@ cphome:
 	cp -f .nimv.json $(MYHOME)
 pretty:
 	nimpretty --indent:4 --maxLineLen:200 src/$(TARGET).nim
+
+VER ?= head
+
+remoteInstall:
+	nimble install https://github.com/dinau/nimv@#$(VER)
+
+vercheck:
+	@echo [nimv.nimlbe]
+	@rg -ie "version\s+=.+" nimv.nimble
+	@echo [src/nimv.nim]
+	@rg -ie "const\s+VERSION.+=" src/nimv.nim

@@ -1,3 +1,6 @@
+
+include "version.nims"
+
 var TC = "gcc"
 #var TC = "clang"
 #var TC = "vcc"
@@ -9,16 +12,16 @@ if TC != "vcc":
     if "" == findExe(TC): # if dosn't exist gcc, try clang
         TC = "clang"
 
-#const LTO = true
+#const LTO = true # further reudce code size
 const LTO = false
 
-#switch "passL","-static-libgcc" # for 32bit Windows
+#switch "passL","-static-libgcc" # for 32bit Windows ?
 
 switch "define", "danger"
 switch "opt", "size"
 
 # Reduce code size further
-when true:
+when false:
     #switch "mm","arc" # nim-1.6.8 or later
     switch "gc","arc"
     switch "define","useMalloc"
@@ -40,7 +43,7 @@ switch "nimcache", ".nimcache"
 case TC
     of "gcc":
         commonOpt()
-        when LTO: # These options let linking time slow instead of reducing code size.
+        when LTO: # These options let link time slow while reducing code size.
             switch "passC", "-flto"
             switch "passL", "-flto"
     of "clang":

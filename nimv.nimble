@@ -1,8 +1,6 @@
-import std/[strutils,os]
-
 # Package
 
-version       = "1.4.0"
+version       = "1.4.4"
 author        = "dinau"
 description   = "Simple CUI wrapper for choosenim command"
 license       = "MIT"
@@ -14,9 +12,15 @@ bin           = @["nimv"]
 
 requires "nim >= 0.19.6"
 
+import std/[strutils]
+
 let TARGET = "nimv"
-const releaseDate = "2023/01"
+
+# See "version.nims" included in "config.nims".
+#const releaseDate = "2023/01"
 var Opts = "" #" -d:VERSION:$# -d:REL_DATE:$# " % [version,releaseDate]
+
+
 
 task make,"make":
     let cmd = "nim c -d:strip -o:$# $# $#.nim" % [TARGET.toEXE,Opts,"src/" & TARGET]
