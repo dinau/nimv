@@ -47,7 +47,7 @@ else:
     const Choosenim = "choosenim"
 
 proc isJp(): bool =
-    const VAL_ENV = ["LANG", "LANGUAGE", "LC_ALL", "LC_CTYPE"]
+    const VAL_ENV = ["LC_ALL","LANG", "LC_CTYPE", "LANGUAGE"]
     for val in VAL_ENV:
         if getEnv(val).toLower =~ peg" 'ja' / 'jp' ":
             result = true

@@ -1,4 +1,4 @@
-# Simple version selector for Nim using choosenim
+# Simple CUI wrapper for Choosenim command
 # modified: 2023/01
 # modified: 2022/11,12
 # modified: 2021/10
@@ -10,8 +10,8 @@
 #
 import std/[os, strutils, terminal, osproc, strformat]
 
-const VERSION {.strdefine.} = "1.4.0" #"ERROR:unkonwn version"
-const REL_DATE {.strdefine.} = "2023/01" #"ERROR:unkonwn release date"
+const VERSION {.strdefine.}: string = "ERROR:unkonwn version"
+const REL_DATE {.strdefine.}: string = "ERROR:unkonwn release date"
 
 # In case not existing NimvConfName,use edge versions as default.
 const tblOldVersions = [("1.6.10", "2022-11-21"),
@@ -56,18 +56,16 @@ Usage:
             None : Show simple CUI for Choosenim.
             -h, /?, /h, -v, --version: Show this page.
             -d: Start nimv with debug mode. Shown choosenim command.
-    $#: List of old nim versions and configration to nimv.
+    $#: List of old nim versions and configration file to nimv.
                 It can be set show/hide to list up the specified nim version.
                 This file can be placed in user home folder.""" % [VERSION, REL_DATE, NimvConfName]
 var
-    seqOldVers: seq[NimVer]
-    seqInstalledVers: seq[NimVer]
-    # Over written by the values within ".nimv.json"
+    seqOldVers, seqInstalledVers: seq[NimVer]
+    sMsgUpdateDevel: string # Not used at this time
+    # Over written by value within ".nimv.json"
+    sChoosenimDir, sNimbleDir: string
     fDebug = false
     fDispChoosenimDirAndNimbleDir = false
-    sChoosenimDir: string
-    sNimbleDir: string
-    sMsgUpdateDevel: string
 
 proc echoColored(str: string, clFg: ForegroundColor = fgWhite, newline: bool = true) =
     when HAVE_COLOR:
@@ -79,7 +77,6 @@ proc echoColored(str: string, clFg: ForegroundColor = fgWhite, newline: bool = t
 
 proc getVerInfo(sVer: string): (bool, bool, string) = # return (result,enabled,compiledDate)
     for obj in seqOldVers:
-        #echo sVer,":",obj.ver
         if sVer == obj.ver:
             return (true, obj.enabled, obj.compiledDate)
 
@@ -111,7 +108,7 @@ proc updateInstalledVer(seqOutput: seq[string]) =
         seqInstalledVers.add NimVer(ver: sVer, selected: true, compiledDate: sDate)
     #
     for i, obj in seqInstalledVers:
-        if obj.ver.contains("#"): # "#devel"だとバージョン番号が不定なので取得
+        if obj.ver.contains("#"): # "#devel"だとバージョン番号が不明なので取得 orz
             if obj.selected:
                 let (sOut, erCode) = execCmdEx("nim --version", options = {poStdErrToStdOut, poUsePath})
                 if erCode == 0:
@@ -123,39 +120,37 @@ proc updateInstalledVer(seqOutput: seq[string]) =
 
 proc getDirOptions(): string =
     if "" != sChoosenimDir:
-        result = "--choosenimDir:\"$#\"" % [sChoosenimDir]
-        result &= " "
+        result = " --choosenimDir:\"$#\" " % [sChoosenimDir]
     if "" != sNimbleDir:
-        result &= "--nimbleDir:\"$#\"" % [sNimbleDir]
+        result &= " --nimbleDir:\"$#\" " % [sNimbleDir]
 
-proc getFullCmd(cmdMain:string): string =
-    [Choosenim,getDirOptions(),cmdMain].join(" ")
+proc getFullCmd(cmdMain: string): string = [Choosenim, getDirOptions(), cmdMain].join(" ")
 
-proc echoDebug(str:string) =
-    if fDebug: echoColored(str,fgRed)
+proc echoDebug(str: string) =
+    if fDebug: echoColored(str, fgRed)
 
-proc execCmdSilent(cmd:string): (int, string) {.discardable.} =
+proc execCmdSilent(cmd: string): (int, string) {.discardable.} =
     echoDebug "[ $# ] in execCmdSilent()" % [cmd]
     let (sOut, erCode) = execCmdEx(cmd, options = {poStdErrToStdOut, poUsePath})
-    return (erCode,sOut)
+    return (erCode, sOut)
 
-when false:
-    proc checkUpdateDevel(): string {.used.} = # not used at this time
-        let (erCode,sOut) = execCmdSilent(getFullCmd("--noColor versions --installed"))
+when false: # not used at this time
+    proc checkUpdateDevel(): string {.used.} =
+        let (erCode, sOut) = execCmdSilent(getFullCmd("--noColor versions --installed"))
         if erCode == 0:
             for line in sOut.splitLines():
                 if line.contains("update available"):
                     return line.strip
 
-proc updateActiveVer(): (bool,string) {.discardable.} =
-    let (erCode,sOut) = execCmdSilent(getFullCmd("--noColor show"))
+proc updateActiveVer(): (bool, string) {.discardable.} =
+    let (erCode, sOut) = execCmdSilent(getFullCmd("--noColor show"))
     if erCode == 0:
         updateInstalledVer(sOut.splitLines()) # 全行渡す
         result = (true, sOut)
     else:
         result = (false, "0[ERROR]: " & sOut)
 
-proc choosenim(cmd:string): bool =
+proc choosenim(cmd: string): bool =
     let sCmd = getFullCmd(cmd)
     echoDebug "[ $# ] in choosenim()" % [sCmd]
     if 0 == execCmd(sCmd):
@@ -174,7 +169,7 @@ proc showActionMenu(act: Action): seq[NimVer] =
     let sAct = if act == Action.update: "Installable" else: "Deletable"
     let str = fmt"{sAct:>11}"
     echoColored "   .-------------------------------------------."
-    echoColored "   | $# versions, select number       |" % [str], if act == Action.update: fgGreen else: fgRed
+    echoColored "   | $# versions, select number       |" % [str], if act == Action.update: fgYellow else: fgRed
     echoColored "   `-------------------------------------------'"
     case act
     of Action.update:
@@ -222,20 +217,20 @@ proc dispatchActionMenu(act: Action): bool =
                     return
             if act == Action.remove:
                 sVer = "\"" & sVer & "\"" # for Linux: orz
-            result = choosenim( [$act, sVer].join(" ") )
+            result = choosenim($act & " " & sVer)
 
 proc dispatchTopMenu(ch: char): bool =
     case ch
     of '\r', 'q':
         quit 0
     of 'u': # Install stable version
-        result = choosenim(["update", "stable"].join(" ") )
+        result = choosenim("update stable")
     of 'p':
         let messages = "This may take much time !\nUpdate Devel version ? y/[n]:"
         echoColored(messages, fgYellow)
         result = true
         if getch() == 'y':
-            result = choosenim(["update", "devel"].join(" ") )
+            result = choosenim("update devel")
     of 'l':
         result = dispatchActionMenu(Action.update) #
     of 'r':
@@ -244,7 +239,7 @@ proc dispatchTopMenu(ch: char): bool =
         result = true
         let num = getListNumber(ch)
         if num >= 0 and num < seqInstalledVers.len:
-            result = choosenim( seqInstalledVers[num].ver.strip(chars = {'#'}) )
+            result = choosenim(seqInstalledVers[num].ver.strip(chars = {'#'}))
 
 proc showTopMenu() =
     echo " .-----------------------."
@@ -283,21 +278,19 @@ proc showTopMenu() =
 
 import json
 proc main() =
-    #### Check choosenim
-    if "" == findExe(Choosenim):
-        echoColored("Cannot find 'choosenim' command, install it as follows:", fgRed)
-        echoColored("nimble install choosenim", fgYellow)
+    if "" == findExe(Choosenim): # Check choosenim
+        echoColored("Cannot find 'choosenim' command, install it refering to", fgRed)
+        echoColored("https://github.com/dom96/choosenim", fgYellow)
         quit 1
-
-    #### For commandline
-    #### Show Help
+    # For command line
+    var arg1 = ""
     if paramCount() >= 1:
         case paramStr(1)
-        of "--help", "-h", "/?", "/h", "-v", "--version":
+        of "--help", "-h", "/?", "/h", "-v", "--version": # Show Help
             echo(sHelp % [VERSION, REL_DATE])
             quit 0
         #
-        let arg1 = commandLineParams()[0]
+        arg1 = commandLineParams()[0]
         try:
             discard parseInt(arg1)
         except ValueError:
@@ -309,11 +302,11 @@ proc main() =
                     let _ = choosenim("show")
                 quit 0
         if not fDebug:
-            discard dispatchTopMenu(arg1[0]) # Specifiy a number to activate a version
+            updateActiveVer()
+            discard dispatchTopMenu(arg1[0]) # Specifiy a number to activate the version
             quit 0
 
     #### Read conf file (NimvConfName)
-    let selfPath = os.getAppFilename()
     let p = getHomeDir().splitFile()
     let confPathName = joinPath(p.dir, NimvConfName)
     if confPathName.fileExists:
@@ -328,11 +321,7 @@ proc main() =
             echo "  $#" % [confPathName]
             quit 1
         # Get debug option
-        if fDebug:
-            stdout.write "[ $# ]" % [selfPath]
-            echoColored " Running", fgYellow
-        else:
-            fDebug = jnode["debugMode"].getBool
+        fDebug = jnode["debugMode"].getBool
         # Make oldVersion object list
         for jElm in jnode["oldVers"].items:
             let bEn = if 1 == jElm["enable"].getInt: true else: false
@@ -364,14 +353,18 @@ proc main() =
         echo "[ $# ] Not exists" % [confPathName]
         for tpVer in @tblOldVersions:
             seqOldVers.add NimVer(enabled: true, ver: tpVer[0], compiledDate: tpVer[1])
-
-    ####
+    # set debug mode
+    if arg1 == "-d": fDebug = true
+    if fDebug:
+        echoColored "Nimv v$#" % [VERSION],fgYellow
+        stdout.write "[ $# ]" % [os.getAppFilename()]
+        echoColored " Running", fgYellow
+    #
     let (fRes, sRes) = updateActiveVer()
     if fRes == false:
         echo sRes
         quit 1
-
-    #### Start CUI
+    # Start CUI
     while true:
         #sMsgUpdateDevel = checkUpdateDevel()
         showTopMenu()
@@ -381,4 +374,3 @@ proc main() =
 when isMainModule:
     main()
 
-#### Todo
