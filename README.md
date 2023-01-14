@@ -3,6 +3,20 @@
 
 - [Nimv : Simple CUI wrapper for Choosenim command](#nimv--simple-cui-wrapper-for-choosenim-command)
   - [Install](#install)
+  - [Key operation](#key-operation)
+    - [Top menu](#top-menu)
+    - [Selecting other Nim version](#selecting-other-nim-version)
+    - [Install other Nim versions](#install-other-nim-versions)
+    - [Remove nim versions](#remove-nim-versions)
+    - [Other key operation](#other-key-operation)
+    - [Selecting a version on command line](#selecting-a-version-on-command-line)
+    - [Transparently throwing commands to Choosenim](#transparently-throwing-commands-to-choosenim)
+    - [Debug mode](#debug-mode)
+  - [[Optional]:  Setup config file '.nimv.json'](#optional--setup-config-file-nimvjson)
+    - [Place config file to your home folder](#place-config-file-to-your-home-folder)
+    - [Set choosenimDir and nimbleDir option](#set-choosenimdir-and-nimbledir-option)
+    - [Addition of installble versions to menu](#addition-of-installble-versions-to-menu)
+    - [Uninstall Nimv](#uninstall-nimv)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -13,26 +27,6 @@
 ## Install
 
 ---
-<!---
-1. Confirm nim version (at this time) [Nim language](https://nim-lang.org),
-
-   ```bash
-   $ nim --version
-    Nim Compiler Version 1.6.10
-    Compiled at 2022-11-21
-    Copyright (c) 2006-2021 by Andreas Rumpf
-   ```
-
-   Required Nim version  
-     - nim-0.19.6 or later minimum requested. **Not colorized**.
-     - nim-1.4.0  or later recommended. **Colorized**.
-
-1. Confirm execution path in `PATH variable`, if not exitsts it set, 
-   - Windows10
-      - `c:\Users\%USERNAME%\.nimble\bin`
-   - Linux OS
-       - `~/.nimble/bin`
---->
 
 1. First install **choosenim** command  
    Refer to [https://github.com/dom96/choosenim](https://github.com/dom96/choosenim)
