@@ -49,7 +49,7 @@
    - Release version
 
       ```bash
-      nimble install https://github.com/dinau/nimv@#v1.4.4
+      nimble install https://github.com/dinau/nimv
       ```
 
    - Bleeding edge version (may be same as release version)
