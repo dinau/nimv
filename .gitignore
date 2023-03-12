@@ -2,3 +2,7 @@
 .nimcache*/
 .hg*
 img/org/
+org.html
+00temp.html
+test.c
+clang.txt

@@ -1,6 +1,6 @@
 # Package
 
-version       = "1.4.4"
+version       = "1.4.5"
 author        = "dinau"
 description   = "Simple CUI wrapper for choosenim command"
 license       = "MIT"
