@@ -9,13 +9,17 @@
 #     nim-1.4.0  or later recommended. Colorized.
 #
 import std/[os, strutils, terminal, osproc, strformat]
+when defined(windows):
+  import winim
 
 const VERSION {.strdefine.}: string = "ERROR:unkonwn version"
 const REL_DATE {.strdefine.}: string = "ERROR:unkonwn release date"
 
+const NimvConfName = ".nimv.json"
+
 # In case not existing NimvConfName,use edge versions as default.
-const tblOldVersions = [("1.6.10", "2022-11-21"),
-                        ("1.6.8", "2022-05-05"),
+const tblOldVersions = [("1.6.12", "2023-03-10"),
+                        ("1.6.10", "2022-11-21"),
                         ("1.4.8", "2021-05-25"),
                         ("1.2.18", "2022-02-09"),
                         ("1.0.10", "2020-10-26")]
@@ -33,7 +37,6 @@ when defined(windows):
 else:
     const Choosenim = "choosenim"
 
-const NimvConfName = ".nimv.json"
 const MaxItems = 20
 
 type
@@ -66,6 +69,8 @@ var
     sChoosenimDir, sNimbleDir: string
     fDebug = false
     fDispChoosenimDirAndNimbleDir = false
+    confPathName:string
+
 
 proc echoColored(str: string, clFg: ForegroundColor = fgWhite, newline: bool = true) =
     when HAVE_COLOR:
@@ -191,7 +196,8 @@ proc showActionMenu(act: Action): seq[NimVer] =
             echoColored "Restricted to max {MaxItems} items"
             break
         let cNum = getListNumchar(i)
-        echo &"    [{cNum}]  nim-{obj.ver}"
+        #echo &"    [{cNum}]  nim-{obj.ver}"
+        echo "    [$#]  nim-$#" % [$cNum,obj.ver]
 
     echo "    ---"
     echo "    [M] Back to top menu (or [R])"
@@ -235,6 +241,34 @@ proc dispatchTopMenu(ch: char): bool =
         result = dispatchActionMenu(Action.update) #
     of 'r':
         result = dispatchActionMenu(Action.remove)
+    of 'w':
+      result = true
+      if not confPathName.fileExists():
+        echoColored "\nError !: [ $# ] dose not exist." % [confPathName], fgRed
+        echoColored "  You should copy it",fgRed
+        echoColored "    from:",fgDefault
+        echoColored "        https://github.com/dinau/nimv/blob/main/.nimv.json",fgGreen
+        echoColored "    to:",fgDefault
+        echoColored "        $#\n" % [confPathName],fgGreen
+        return
+      when defined(windows):
+        discard ShellExecuteW(0i32 # hwnd
+                             ,newWideCstring("open") # lpOeration
+                             ,confPathName # lpFile
+                             ,nil # lpParameters
+                             ,nil # lpDirectory
+                             ,SW_SHOWNORMAL) # nShowCmd
+      else: # for Linux
+        var editor:string
+        editor = getEnv("EDITOR")
+        if "" != findExe(editor):
+          discard execCmd(editor & " " & confPathName)
+          return
+        editor = "/usr/bin/editor"
+        if "" != findExe(editor):
+          discard execCmd(editor & " " & confPathName)
+          return
+        echoColored "\nError !: Proper editor dose not exist\n",fgRed
     else:
         result = true
         let num = getListNumber(ch)
@@ -274,6 +308,7 @@ proc showTopMenu() =
     if "" != sMsgUpdateDevel: echoColored("        " & sMsgUpdateDevel, fgYellow)
     echo """
   [R] [R]emove Nim versions
+  [W] Edit config file: ".nimv.json"
   [Q] Exit (or [Enter])"""
 
 import json
@@ -308,7 +343,7 @@ proc main() =
 
     #### Read conf file (NimvConfName)
     let p = getHomeDir().splitFile()
-    let confPathName = joinPath(p.dir, NimvConfName)
+    confPathName = joinPath(p.dir, NimvConfName)
     if confPathName.fileExists:
         stdout.write "[ $# ]" % [confPathName]
         echoColored " Loaded", fgYellow

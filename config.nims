@@ -17,8 +17,9 @@ const LTO = false
 
 #switch "passL","-static-libgcc" # for 32bit Windows ?
 
-switch "define", "danger"
-switch "opt", "size"
+switch "define", "release"
+#switch "define", "danger"
+#switch "opt", "size"
 
 # Reduce code size further
 when false:

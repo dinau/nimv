@@ -1,6 +1,6 @@
 # Package
 
-version       = "1.4.5"
+version       = "1.4.6"
 author        = "dinau"
 description   = "Simple CUI wrapper for choosenim command"
 license       = "MIT"
@@ -10,7 +10,10 @@ bin           = @["nimv"]
 
 # Dependencies
 
-requires "nim >= 0.19.6"
+requires "nim >= 1.6.0"
+when defined(windows):
+  requires "winim"
+
 
 import std/[strutils]
 

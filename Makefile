@@ -15,7 +15,7 @@ endif
 
 all: genconf$(EXE)
 	@nimble make --verbose
-	-cp -f .nimv.json c:/Users/$(USERNAME)/
+	-cp -f .nimv.json $(MYHOME)/$(USERNAME)/
 	@# dll check
 	-@strings $(TARGET)$(EXE) | rg -i \.dll
 	@# version check
@@ -53,7 +53,8 @@ purge:
 GIT_REPO = ../00rel/nimv
 
 gitup:
-	@-rm $(GIT_REPO)/* $(GIT_REPO)/src/
+	@-rm -fr $(GIT_REPO)/* $(GIT_REPO)/src/
+	mkdir -p $(GIT_REPO)/{img,src}
 	cp -f version.nims $(GIT_REPO)
 	cp -f config.nims $(GIT_REPO)
 	cp -f .gitignore  $(GIT_REPO)
@@ -65,10 +66,10 @@ gitup:
 	cp -f nimv.nimble $(GIT_REPO)
 	cp -f setenv.bat $(GIT_REPO)
 	cp -f src/nimv.nim $(GIT_REPO)/src
-	-cp -f img/* $(GIT_REPO)/img/
-	ls -al $(GIT_REPO)
-	ls -al $(GIT_REPO)/src
-	ls -al $(GIT_REPO)/img
+	-cp -f img/*.png $(GIT_REPO)/img/
+	@#ls -al $(GIT_REPO)
+	@#ls -al $(GIT_REPO)/src
+	@#ls -al $(GIT_REPO)/img
 
 dlls:
 	@strings $(TARGET)$(EXE) | rg -i \.dll
