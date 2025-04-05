@@ -15,7 +15,7 @@
   - [[Optional]:  Setup config file '.nimv.json'](#optional--setup-config-file-nimvjson)
     - [Place config file to your home folder](#place-config-file-to-your-home-folder)
     - [Set choosenimDir and nimbleDir option](#set-choosenimdir-and-nimbledir-option)
-    - [Addition of installble versions to menu](#addition-of-installble-versions-to-menu)
+    - [Addition of installable versions to menu](#addition-of-installable-versions-to-menu)
     - [Uninstall Nimv](#uninstall-nimv)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -217,7 +217,7 @@ You can set them in `.nimv.json` for instance,
    snip
    ```
 
-### Addition of installble versions to menu 
+### Addition of installable versions to menu 
 
 ---
 

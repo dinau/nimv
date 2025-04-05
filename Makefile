@@ -15,9 +15,9 @@ endif
 
 all: genconf$(EXE)
 	@nimble make --verbose
-	-cp -f .nimv.json $(MYHOME)/$(USERNAME)/
+	-cp -f .nimv.json $(MYHOME)/
 	@# dll check
-	-@strings $(TARGET)$(EXE) | rg -i \.dll
+	@#-@strings $(TARGET)$(EXE) | rg -i \.dll
 	@# version check
 	@echo [nimv.nimlbe]
 	-@rg -ie "version\s+=.+" nimv.nimble
@@ -25,7 +25,7 @@ all: genconf$(EXE)
 	-@rg -ie "\d\.\d\.\d" version.nims
 	-@ mdmake .
 
-OPT += -d:danger
+OPT += -d:release
 OPT += -d:strip
 #OPT += --passL:"-Wl,--enable-stdcall-fixup"
 

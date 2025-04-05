@@ -1,6 +1,6 @@
 # Package
 
-version       = "1.4.6"
+version       = "1.5.0"
 author        = "dinau"
 description   = "Simple CUI wrapper for choosenim command"
 license       = "MIT"
@@ -10,7 +10,7 @@ bin           = @["nimv"]
 
 # Dependencies
 
-requires "nim >= 1.6.0"
+requires "nim >= 1.6.20"
 when defined(windows):
   requires "winim"
 
@@ -37,4 +37,3 @@ task clean,"clean":
 task run,"run":
     makeTask()
     exec("$#" % [TARGET.toEXE])
-
